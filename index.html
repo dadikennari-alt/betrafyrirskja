@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="is">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Talæfing FB - Morgunverk (Tölvuútgáfa)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; background-color: #eef2f5; text-align: center; padding: 20px; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+  
+  /* Aðal kassinn - Breytt fyrir Landscape / Tölvuskjá */
+  .card { background: white; width: 100%; max-width: 900px; padding: 30px 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border-top: 10px solid #004a99; box-sizing: border-box; }
+  
+  /* Framvindustika efst */
+  .overall-progress { margin-bottom: 20px; font-size: 1.1em; color: #555; text-align: left; }
+  .progress-container { width: 100%; background: #e0e0e0; height: 12px; border-radius: 6px; margin-top: 8px; }
+  .progress-fill { height: 100%; width: 0%; background: #004a99; border-radius: 6px; transition: width 0.5s ease; }
+  
+  h2 { color: #2c3e50; margin: 0 0 5px 0; font-size: 2em; }
+  .counter { color: #888; font-size: 1.2em; margin-bottom: 20px; display: block; font-weight: bold;}
+  
+  /* Svæðið fyrir miðilinn (mynd eða myndband) - Stækkað */
+  .media-container { width: 100%; height: 450px; background-color: #000; border-radius: 12px; margin-bottom: 25px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+  .exercise-img { width: 100%; height: 100%; object-fit: cover; }
+  .video-frame { width: 100%; height: 100%; border: none; }
+
+  /* Boxið utan um textann sem á að lesa - Stækkað */
+  .phrase-box { background-color: #f8fbff; border: 3px solid #dce6f1; border-radius: 15px; padding: 25px; margin-bottom: 25px; }
+  .target-text { font-size: 2.2em; color: #004a99; font-weight: bold; letter-spacing: 1px;}
+  
+  /* Neðri hlutinn - Skipulagður í dálka fyrir Landscape */
+  .controls-wrapper { display: flex; gap: 30px; align-items: stretch; justify-content: space-between; }
+  
+  /* Upptökuhluti (Vinstri) */
+  .action-area { flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 15px; }
+  
+  /* Upptökuhnappurinn - Stækkaður */
+  .record-btn { background-color: #27ae60; color: white; border: none; padding: 20px; font-size: 1.4em; font-weight: bold; border-radius: 50px; cursor: pointer; transition: 0.2s; width: 100%; box-shadow: 0 6px 12px rgba(39, 174, 96, 0.3); }
+  .record-btn:hover { background-color: #219150; transform: translateY(-2px); }
+  .record-btn.recording { background-color: #e74c3c; animation: pulse 1.5s infinite; box-shadow: 0 6px 12px rgba(231, 76, 60, 0.3); }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(231, 76, 60, 0); } 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); } }
+  
+  /* Stjórntakkar og lógó */
+  .nav-row { display: flex; justify-content: space-between; align-items: center; background: #f4f6f8; padding: 10px 15px; border-radius: 12px; }
+  .nav-btn { background-color: #fff; border: 2px solid #ddd; padding: 12px 25px; border-radius: 8px; cursor: pointer; color: #555; font-weight: bold; font-size: 1.1em; transition: 0.2s; }
+  .nav-btn:hover { background-color: #eef2f5; border-color: #bbb; }
+  .small-logo { height: 45px; width: auto; border-radius: 5px; }
+
+  /* Niðurstöðusvæðið (Hægri) - Stækkað */
+  .result-area { flex: 1; background: #fdfdfe; padding: 20px; border-radius: 15px; border: 2px solid #eee; display: flex; flex-direction: column; justify-content: center; text-align: left; }
+  #accuracy { font-size: 1.3em; margin-bottom: 5px;}
+  .score-bar-bg { width: 100%; background: #e0e0e0; height: 15px; border-radius: 8px; overflow: hidden; margin: 10px 0 15px 0; }
+  .score-bar-fill { height: 100%; width: 0%; background: #27ae60; transition: width 0.6s ease; }
+  .user-said { font-size: 1.4em; color: #444; font-style: italic; min-height: 40px; border-left: 4px solid #ddd; padding-left: 15px; }
+  
+  /* Skírteini (Modal gluggi) - Stækkað fyrir PC */
+  #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; flex-direction: column; }
+  #cert-wrap { background: white; padding: 50px; border: 15px double #004a99; width: 90%; max-width: 700px; text-align: center; box-sizing: border-box; border-radius: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);}
+  .cert-logo { width: 120px; margin-bottom: 15px; }
+  .student-name-input { font-size: 2em; border: none; border-bottom: 3px solid #004a99; text-align: center; width: 80%; margin: 25px 0; outline: none; background: #f4f4f4; padding: 10px;}
+  .action-btns { margin-top: 30px; display: flex; gap: 15px; justify-content: center; }
+  .save-btn, .close-btn { border: none; padding: 15px 30px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.2em; transition: 0.2s; }
+  .save-btn { background: #004a99; color: white; }
+  .save-btn:hover { background: #003366; }
+  .close-btn { background: #95a5a6; color: white; }
+  .close-btn:hover { background: #7f8c8d; }
+</style>
+</head>
+<body>
+
+<div class="card">
+    <div class="overall-progress">
+        Árangur þinn: <span id="completed-count">0</span> af 10 setningum kláraðar
+        <div class="progress-container"><div id="overall-fill" class="progress-fill"></div></div>
+    </div>
+
+    <h2>Morgunverk</h2>
+    <span class="counter" id="counter">1 / 10</span>
+
+    <div class="media-container" id="media-content">
+        </div>
+
+    <div class="phrase-box">
+        <span class="target-text" id="target">Hleð inn...</span>
+    </div>
+
+    <div class="controls-wrapper">
+        <div class="action-area">
+            <button class="record-btn" id="record-btn">🎙️ Ýttu hér til að lesa textann</button>
+            <div class="nav-row">
+                <button class="nav-btn" onclick="move(-1)">⬅ Fyrri</button>
+                <img src="https://geymd.arnastofnun.is/ismus/data/e534627e-82ae-497a-8a52-22e8170a9f5a/filename.jpg" alt="FB Logo" class="small-logo">
+                <button class="nav-btn" onclick="move(1)">Næsta ➡</button>
+            </div>
+        </div>
+
+        <div class="result-area">
+            <div id="accuracy" style="font-weight:bold; color:#004a99;">Nákvæmni: 0%</div>
+            <div class="score-bar-bg"><div id="score-fill" class="score-bar-fill"></div></div>
+            <div style="font-size: 0.9em; color: #888; margin-bottom: 5px;">Þú sagðir:</div>
+            <div class="user-said" id="user-input"></div>
+        </div>
+    </div>
+</div>
+
+<div id="modal-overlay">
+    <div id="cert-wrap">
+        <img src="https://geymd.arnastofnun.is/ismus/data/e534627e-82ae-497a-8a52-22e8170a9f5a/filename.jpg" alt="Logo" class="cert-logo">
+        <h1 style="font-family: serif; font-size: 3.5em; margin: 10px 0; color: #004a99;">SKÍRTEINI</h1>
+        <p style="font-size: 1.2em;">Þetta staðfestir að:</p>
+        <input type="text" id="student-name" class="student-name-input" placeholder="Skrifaðu nafnið þitt hér">
+        <p style="font-size: 1.2em;">hefur lokið talæfingunni:</p>
+        <h3 style="color: #333; margin: 15px 0; font-size: 2em;">Morgunverk</h3>
+        <p id="cert-date" style="font-size: 1.1em; color: #777;"></p>
+        <div style="font-size: 3em; margin-top: 15px;">🏆</div>
+    </div>
+    <div class="action-btns">
+        <button class="save-btn" onclick="downloadCert()">💾 Vista sem mynd</button>
+        <button class="close-btn" onclick="closeModal()">Loka</button>
+    </div>
+</div>
+
+<script>
+const exerciseData = [
+    // --- 5 MYNDBÖND (YouTube) ---
+    { text: "Ég vakna.", url: "https://www.youtube.com/embed/eZ1Q6a5q8pU?autoplay=1&mute=1&controls=0" },
+    { text: "Ég teygji úr mér.", url: "https://www.youtube.com/embed/Fj5t0h6_06Q?autoplay=1&mute=1&controls=0" },
+    { text: "Ég fer framúr.", url: "https://www.youtube.com/embed/E91gz18XjYk?autoplay=1&mute=1&controls=0" }, 
+    { text: "Ég bursta tennurnar.", url: "https://www.youtube.com/embed/0O9F80g0A0A?autoplay=1&mute=1&controls=0" }, 
+    { text: "Ég þvæ mér um hendurnar.", url: "https://www.youtube.com/embed/Z_q6bSjYk0E?autoplay=1&mute=1&controls=0" }, 
+
+    // --- 5 LJÓSMYNDIR (Unsplash) ---
+    { text: "Ég klæði mig.", url: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=900&auto=format&fit=crop&q=80" },
+    { text: "Ég borða morgunmat.", url: "https://images.unsplash.com/photo-1493770348161-369560ae357d?w=900&auto=format&fit=crop&q=80" },
+    { text: "Ég drekk kaffi.", url: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=900&auto=format&fit=crop&q=80" },
+    { text: "Ég tek töskuna mína.", url: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=900&auto=format&fit=crop&q=80" },
+    { text: "Ég fer í skólann.", url: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=900&auto=format&fit=crop&q=80" }
+];
+
+let currentIndex = 0;
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+if (recognition) {
+    recognition.lang = 'is-IS';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+} else {
+    alert("Þessi vafri styður ekki talgreiningu. Notaðu Chrome eða Edge á tölvu.");
+}
+
+window.onload = () => { 
+    localStorage.clear(); 
+    updateUI(); 
+};
+
+function updateUI() {
+    const curr = exerciseData[currentIndex];
+    const mediaBox = document.getElementById('media-content');
+
+    document.getElementById('target').innerText = curr.text;
+    document.getElementById('counter').innerText = `${currentIndex + 1} / ${exerciseData.length}`;
+    
+    if (curr.url.includes('youtube.com')) {
+        mediaBox.innerHTML = `<iframe class="video-frame" src="${curr.url}" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+    } else {
+        mediaBox.innerHTML = `<img id="current-image" class="exercise-img" src="${curr.url}" alt="Mynd">`;
+    }
+    
+    document.getElementById('user-input').innerText = "";
+    document.getElementById('accuracy').innerText = "Nákvæmni: 0%";
+    document.getElementById('score-fill').style.width = "0%";
+}
+
+function calculateProgress() {
+    let done = 0;
+    for(let i=0; i<exerciseData.length; i++) {
+        if((localStorage.getItem('score_'+i) || 0) >= 80) done++;
+    }
+    document.getElementById('completed-count').innerText = done;
+    document.getElementById('overall-fill').style.width = (done/exerciseData.length)*100 + "%";
+    
+    if(done === exerciseData.length) {
+        document.getElementById('cert-date').innerText = new Date().toLocaleDateString('is-IS');
+        setTimeout(() => {
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }, 500);
+    }
+}
+
+function move(dir) {
+    currentIndex += dir;
+    if(currentIndex < 0) currentIndex = 0;
+    if(currentIndex >= exerciseData.length) currentIndex = exerciseData.length - 1;
+    updateUI();
+}
+
+function formatUserSpeech(text) {
+    if (!text) return "";
+    let formatted = text.trim();
+    formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    if (!formatted.endsWith('.') && !formatted.endsWith('!')) formatted += ".";
+    return formatted;
+}
+
+const recBtn = document.getElementById('record-btn');
+recBtn.onclick = () => { 
+    if (!recognition) return alert("Talgreining ekki studd.");
+    try {
+        recognition.start(); 
+        recBtn.classList.add('recording'); 
+        recBtn.innerText = "Hlusta..."; 
+    } catch(e) { console.log("Hljóðnemi þegar í gangi eða villa."); }
+};
+
+if (recognition) {
+    recognition.onresult = (e) => {
+        recBtn.classList.remove('recording'); 
+        recBtn.innerText = "🎙️ Ýttu hér til að lesa textann";
+        
+        const rawSpeech = e.results[0][0].transcript;
+        const formattedSpeech = formatUserSpeech(rawSpeech);
+        const target = exerciseData[currentIndex].text;
+        
+        const score = compare(rawSpeech, target);
+        
+        document.getElementById('user-input').innerText = `„${formattedSpeech}“`;
+        document.getElementById('accuracy').innerText = `Nákvæmni: ${score}%`;
+        document.getElementById('score-fill').style.width = score + "%";
+        
+        if(score >= 80) { 
+            localStorage.setItem('score_'+currentIndex, score); 
+            calculateProgress(); 
+        }
+    };
+
+    recognition.onend = () => {
+        recBtn.classList.remove('recording');
+        recBtn.innerText = "🎙️ Ýttu hér til að lesa textann";
+    };
+    
+    recognition.onerror = (event) => {
+        recBtn.classList.remove('recording');
+        recBtn.innerText = "🎙️ Ýttu hér til að lesa textann";
+        console.error("Talgreiningarvilla:", event.error);
+    };
+}
+
+function compare(s1, s2) {
+    const clean = s => s.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g,"").trim();
+    const w1 = clean(s1).split(/\s+/); 
+    const w2 = clean(s2).split(/\s+/);
+    let m = 0; 
+    w1.forEach(w => { if(w2.includes(w)) m++; });
+    return Math.round((m / Math.max(w1.length, w2.length)) * 100) || 0;
+}
+
+async function downloadCert() {
+    const nameInput = document.getElementById('student-name');
+    const name = nameInput.value;
+    if(!name) return alert("Vinsamlegast skrifaðu nafn!");
+    
+    const wrap = document.getElementById('cert-wrap');
+    const nameText = document.createElement('h2');
+    nameText.innerText = name;
+    nameText.style.color = "#004a99";
+    nameText.style.fontSize = "2.5em";
+    nameText.style.margin = "20px 0";
+    nameInput.style.display = "none";
+    nameInput.parentNode.insertBefore(nameText, nameInput);
+    
+    try {
+        const canvas = await html2canvas(wrap, { useCORS: true, scale: 2 });
+        const link = document.createElement('a');
+        link.download = `Skirteini-${name.replace(/\s+/g, '_')}.png`; 
+        link.href = canvas.toDataURL('image/png'); 
+        link.click();
+    } catch (err) {
+        console.error("Villa við að vista skírteini:", err);
+        alert("Gat ekki vistað skírteinið. Athugaðu vafrann.");
+    } finally {
+        nameInput.style.display = "inline-block"; 
+        nameText.remove();
+    }
+}
+
+function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+</script>
+</body>
+</html>
